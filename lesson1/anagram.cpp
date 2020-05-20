@@ -10,6 +10,9 @@
 #include <unordered_set>
 #include <vector>
 
+
+// ALEXREVIEW: generally fairly good
+
 // Find anagram by binary search and return it.
 std::string binary_search_anagram(
     std::string sorted_input,
@@ -57,6 +60,9 @@ int main() {
       continue;
     }
     std::transform(str.cbegin(), str.cend(), str.begin(), ::tolower);
+    //   ALEXREVIEW :  the check below is  unusual.  This means the dictionary will be specific to this input.
+    //                  if you go through the trouble of building a dictionary, it is best to build a dictionary
+    //                  that works with any input.  But may be ok if the dictionary is a generic one.
     // A word which is identical to the input is excluded.
     if (str != input) {
       dic.insert(str);
