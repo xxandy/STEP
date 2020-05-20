@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <vector>
 
+// ALEXREVIEW: Generally good solution
+
 // Take string as an input and returns a vector (length: 26) that
 // represents the frequency for each alphabet.
 // Example: "aba" -> {2, 1, 0, ..., 0, 0}
@@ -17,6 +19,7 @@ std::vector<int> make_alphabet_vec(std::string &s) {
   int length_of_s = s.size();
   std::vector<int> div_vec(26);
   for (int i = 0; i < length_of_s; i++) {
+    // ALEXREVIEW: how did you validate that all characters in s are within a-z ?
     int idx = s[i] - 'a';
     div_vec[idx] += 1;
   }
@@ -108,6 +111,7 @@ int main() {
               alphabet_vec.begin(), alphabet_vec.end(),
               [](int x, int y) { return x >= y; });
     if (if_partial_anagram) {
+      
       score = calc_score(alphabet_vec, num_of_u_in_input);
       if (score > max_score) {
         max_score = score;
