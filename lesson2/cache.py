@@ -43,10 +43,12 @@ class Cache:
     # If the most recent accessed url in cache is the same as the current url, nothing needs to be done
     if self.newest_url == url:
       return
+
     # If the dict is empty, the first element is added
     if len(self.dict) == 0:
       self.dict[url] = CacheElenemt(None, None, contents)
       self.oldest_url = url
+
     # When the url is already in the dict
     elif self.dict.get(url):
       # If the current url is the oldest in the dict, the url that points the oldest data moves forward
@@ -61,6 +63,7 @@ class Cache:
       self.dict[self.newest_url].next_url = url
       self.dict[url].prev_url = self.newest_url
       self.dict[url].next_url = None
+
     # When the url is not in the dict
     else:
       # If the dict is full, the oldest data is discarded
@@ -72,6 +75,7 @@ class Cache:
       # Add a new element 
       self.dict[url] = CacheElenemt(self.newest_url, None, contents)
       self.dict[self.newest_url].next_url = url
+
     self.newest_url = url
 
   # Return the URLs stored in the cache. The URLs are ordered
