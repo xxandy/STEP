@@ -23,6 +23,9 @@ std::vector<std::vector<int>> create_random_square_matrix(int N, int seed) {
 }
 
 // Calculate the product of two square matrixes
+// ALEXNOTE:  this looks really good.  quick question:
+//            can you compare pros and cos of using an std::vector or std::vector versus
+//            a native C++ double-dimensional array?
 std::vector<std::vector<int>> calc_prod_matrix(
     const std::vector<std::vector<int>> &A,
     const std::vector<std::vector<int>> &B) {
