@@ -20,6 +20,7 @@ class CacheElenemt:
     self.prev_url = prev_url
     self.next_url = next_url
 
+# ALEXNOTE:  algorithm looks 
 # Cache is a data structure that stores the most recently accessed N pages.
 # In the dict, CashElement object is stored as a value where its url is the key.
 # [Example]
@@ -33,6 +34,7 @@ class Cache:
     self.cache_size = n
     self.dict = {}
     self.newest_url = None
+    # ALEXNOTE: did you forget to initialize self.oldest_url ? or does it not matter?
 
   # Access a page and update the cache so that it stores the most
   # recently accessed N pages. This needs to be done with mostly O(1).
@@ -61,6 +63,9 @@ class Cache:
         self.dict[self.dict[url].next_url].prev_url = self.dict[url].prev_url;
       # Update the object of the current url as the most resently accessed url
       self.dict[self.newest_url].next_url = url
+      
+      // ALEXNOTE: can you cache  self.dict[url] in a local var and use it?  should be cheaper
+      //                          than looking up the dictionary twice (remember O(1) )
       self.dict[url].prev_url = self.newest_url
       self.dict[url].next_url = None
 
