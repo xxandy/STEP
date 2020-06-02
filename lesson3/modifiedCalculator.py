@@ -100,6 +100,17 @@ class calculator:
         tokens = [tokens[i] for i in range(len(tokens)) if i not in deleteIndex]
         return tokens
 
+    def __processFourArithmeticOperations(self, tokens):
+        """
+        - Take tokens without brackets as an input.
+        - Return the calculation result as a number.
+        """
+        # Process Multiplication and division first
+        tokensWithoutMultiplyDivide = self.__processMutiplyDivide(tokens)
+        # Then, process addition and substraction to get the answer.
+        answer = self.__processPlusMinus(tokensWithoutMultiplyDivide)
+        return answer
+
     def __processBrackets(self, tokens):
         """
         - Take tokens as an input and calculate inside brackets.
@@ -119,12 +130,9 @@ class calculator:
                     raise Exception('Error: no matching brackets')
                 # Extract tokens between opening and closing bracket
                 tokensInBracket = tokens[lastOpeningBracketIndex + 1:index]
-                # Insert a dummy '+'
+                # Insert a dummy '+' calculate inside the brackets
                 tokensInBracket.insert(0, {'type': 'PLUS'})
-                # Process mulplication and division in the bracket first
-                tokensWithoutMultiplyDivide = self.__processMutiplyDivide(tokensInBracket)
-                # Then, process plus and minus to get the calculation result inside the bracket
-                bracketCalcResult = self.__processPlusMinus(tokensWithoutMultiplyDivide)
+                bracketCalcResult = self.__processFourArithmeticOperations(tokensInBracket)
                 # Delete tokens in brackets and insert the calculation result
                 deleteIndex = range(lastOpeningBracketIndex, index + 1)
                 tokens = [tokens[i] for i in range(len(tokens)) if i not in deleteIndex]
@@ -147,12 +155,9 @@ class calculator:
         tokens = tokenizerObj.tokenize(line)
         # Insert a dummy '+' token
         tokens.insert(0, {'type': 'PLUS'})
-        # First, process brackets.
+        # Process brackets and then calculate to get the answer
         tokensWithoutBrackets = self.__processBrackets(tokens)
-        # Then, process multiplication and division.
-        tokensWithoutMultiplyDivide = self.__processMutiplyDivide(tokensWithoutBrackets)
-        # Finally, process addition and substraction to get the answer.
-        answer = self.__processPlusMinus(tokensWithoutMultiplyDivide)
+        answer = self.__processFourArithmeticOperations(tokensWithoutBrackets)
         return answer
 
 
