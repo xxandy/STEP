@@ -3,6 +3,8 @@
 # Reference: https://github.com/xharaken/step2/blob/master/modularized_calculator.py
 
 class tokenizer:
+    #ALEXNOTE: In many coding standards, class names must start with a capital letter.
+    #          Always confirm the coding standard of your team.
     def __readNumber(self):
         """
         - Move index forward and tokenize numbers until it encounters non-number.
@@ -30,6 +32,9 @@ class tokenizer:
         dic = {'+': 'PLUS', '-': 'MINUS', '*': 'MULTIPLY', '/': 'DIVIDE',
                '(': 'OPENING_BRACKET', ')': 'CLOSING_BRACKET'}
         if dic.get(symbol):
+            # ALEXNOTE:  you should save the result of dic.get(symbol).   Then 
+            #            you can avoid a second dictionary search.  Like this
+            #            tmp = dic.get(symbol);  if tmp:  token = { 'type':, tmp }
             token = {'type': dic[symbol]}
         else:
             raise Exception('Error: invalid character "' + self.__line[self.__index] + '"')
@@ -199,6 +204,9 @@ def runTest():
     test("2*(1+3)")
     test("5+(2+3/(4-7))")
     test("2*(1/(4.4*5)+3)+5.6*(2+3/(4.6-7))")
+    # ALEXNOTE:  how about other invalid tests?  
+    #            two operators in a row?  ++, -- ...
+    #            spaces within the string
     test("1.999999999999999999999*4")
     test("", expectedError='please type something')
     test("1+3)", expectedError='no matching brackets')
