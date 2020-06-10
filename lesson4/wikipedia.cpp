@@ -22,8 +22,7 @@ class Graph {
         graphReader(path_to_links_file);
     int currentNodeId, adjacentNodeId;
     while (graphReader.read_row(currentNodeId, adjacentNodeId)) {
-      // graph_ is a vector of vector of pair, whose element is (node id,
-      // adjacent node id).
+      // graph_ is a vector of vector, whose element is a adjacent node id.
       graph_[currentNodeId].push_back(adjacentNodeId);
     }
   }
@@ -40,7 +39,7 @@ class Graph {
     // Initialize visitStatus_, distance_, parent_.
     // visitStatus_ is 0 zero if the node is not visited, 2 when the visiting
     // has completed, otherwise 1. Initizlized to 0.
-    initializeVectors();
+    resetVectors();
     int nodeId, nextNodeId;
     std::queue<int> Q;
     distance_[startNodeId_] = 0;
@@ -95,7 +94,7 @@ class Graph {
   int numOfNodes_, startNodeId_, targetNodeId_;
   std::vector<int> visitStatus_, distance_, parent_;
 
-  void initializeVectors() {
+  void resetVectors() {
     std::fill(visitStatus_.begin(), visitStatus_.end(), 0);
     std::fill(distance_.begin(), distance_.end(), VERY_LARGE_NUM);
     std::fill(parent_.begin(), parent_.end(), -1);
@@ -107,10 +106,10 @@ std::vector<std::string> loadPages(std::string path_to_pages_file) {
   io::CSVReader<2, io::trim_chars<' '>, io::no_quote_escape<'\t'>> pages_reader(
       path_to_pages_file);
   int nodeId;
-  std::string page_title;
+  std::string pageTitle;
   std::vector<std::string> pages;
-  while (pages_reader.read_row(nodeId, page_title)) {
-    pages.push_back(page_title);
+  while (pages_reader.read_row(nodeId, pageTitle)) {
+    pages.push_back(pageTitle);
   }
   return pages;
 }

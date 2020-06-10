@@ -1,191 +1,195 @@
-#include <algorithm>
-#include <bitset>
-#include <cassert>
-#include <cmath>
 #include <fstream>
 #include <iostream>
-#include <map>
-#include <numeric>
 #include <queue>
-#include <regex>
-#include <set>
 #include <string>
 #include <vector>
 
-// Acknowledgement: Special thanks to kyomukyomupurin, who developed this
-// template.
-template <class T, class U>
-std::ostream& operator<<(std::ostream& os, const std::pair<T, U>& p) {
-  return os << '(' << p.first << ", " << p.second << ')';
-}
+#include "csv.h"
 
-template <class T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
-  int n = 0;
-  for (auto e : vec) os << (n++ ? ", " : "{") << e;
-  return os << (n ? "}" : "{}");
-}
+class Graph {
+ public:
+  static constexpr int VERY_LARGE_NUM = 1e9;
+  Graph(int numOfNodes)
+      : numOfNodes_(numOfNodes),
+        graph_(numOfNodes, std::vector<std::pair<int, int>>{}),
+        visitStatus_(numOfNodes, 0),
+        distance_(numOfNodes, VERY_LARGE_NUM),
+        parent_(numOfNodes, -1) {}
 
-template <class T>
-std::ostream& operator<<(std::ostream& os, const std::set<T>& st) {
-  int n = 0;
-  for (auto e : st) os << (n++ ? ", " : "{") << e;
-  return os << (n ? "}" : "{}");
-}
-
-template <class T, class U>
-std::ostream& operator<<(std::ostream& os, const std::map<T, U>& mp) {
-  int n = 0;
-  for (auto e : mp) os << (n++ ? ", " : "{") << e;
-  return os << (n ? "}" : "{}");
-}
-
-template <class T>
-std::istream& operator>>(std::istream& is, std::vector<T>& vec) {
-  for (T& e : vec) is >> e;
-  return is;
-}
-
-#ifdef LOCAL
-#define debug(...) \
-  std::cerr << "[" << #__VA_ARGS__ << "]: ", debug_out(__VA_ARGS__)
-#else
-#define debug(...)
-#endif
-
-void debug_out() { std::cerr << '\n'; }
-
-template <class Head, class... Tail>
-void debug_out(Head&& head, Tail&&... tail) {
-  std::cerr << head;
-  if (sizeof...(Tail) != 0) std::cerr << ", ";
-  debug_out(std::forward<Tail>(tail)...);
-}
-using namespace std;
-using int64 = long long;
-
-vector<string> load_stations(string path_to_stations_file) {
-  std::string str;
-  std::ifstream ifs(path_to_stations_file);
-  std::smatch results;
-  vector<string> stations;
-
-  if (ifs.fail()) {
-    throw "Failed to open station file.";
-  }
-  while (getline(ifs, str)) {
-    if (std::regex_match(str, results, std::regex("(\\d+)\\t(\\D+)"))) {
-      stations.push_back(results[2].str());
+  // Load links from tsv file and convert it to graph object.
+  void loadGraph(std::string path_to_links_file) {
+    io::CSVReader<3, io::trim_chars<' '>, io::no_quote_escape<'\t'>>
+        graphReader(path_to_links_file);
+    int currentNodeId, adjacentNodeId, weight;
+    while (graphReader.read_row(currentNodeId, adjacentNodeId, weight)) {
+      // graph_ is a vector of vector of pair, whose element is (weight,
+      // adjacent node id).
+      graph_[currentNodeId].push_back(std::make_pair(weight, adjacentNodeId));
+      graph_[adjacentNodeId].push_back(std::make_pair(weight, currentNodeId));
     }
   }
-  return stations;
-}
 
-vector<vector<pair<int, int>>> load_links(string path_to_links_file,
-                                          int num_of_nodes) {
-  std::string str;
-  std::ifstream ifs(path_to_links_file);
-  std::smatch results;
-  int node_id, adjacent_node_id, weight;
-  vector<pair<int, int>> tmp(0, make_pair(0, 0));
-  vector<vector<pair<int, int>>> graph(num_of_nodes, tmp);
-
-  if (ifs.fail()) {
-    throw "Failed to open station file.";
+  // Set startNodeId_ and targetNodeId_.
+  void setStartTargetNode(int startNodeId, int targetNodeId) {
+    startNodeId_ = startNodeId;
+    targetNodeId_ = targetNodeId;
   }
-  while (getline(ifs, str)) {
-    // debug(str);
-    if (std::regex_match(str, results,
-                         std::regex("(\\d+)\\t(\\d+)\\t(\\d+)"))) {
-      node_id = stoi(results[1].str());
-      adjacent_node_id = stoi(results[2].str());
-      weight = stoi(results[3].str());
-      graph[node_id].push_back(make_pair(weight, adjacent_node_id));
-      graph[adjacent_node_id].push_back(make_pair(weight, node_id));
-    }
-  }
-  return graph;
-}
 
-int search_station(const vector<string>& stations, string target_station) {
-  auto iterator_of_target =
-      find(stations.begin(), stations.end(), target_station);
-  if (iterator_of_target == stations.end()) {
-    throw "Invalid username";
-  }
-  int node_id_of_target = iterator_of_target - stations.begin();
-  return node_id_of_target;
-}
-
-const int VERY_LARGE_NUM = 1e6;
-
-void dijkstra(int start_node_id, int target_node_id,
-              const vector<vector<pair<int, int>>>& graph,
-              vector<int>& visit_status, vector<int>& distance,
-              vector<int>& parent) {
-  distance[start_node_id] = 0;
-  visit_status[start_node_id] = 1;
-  priority_queue<pair<int, int>, vector<pair<int, int>>,
-                 greater<pair<int, int>>>
-      PQ;
-  PQ.push(make_pair(0, start_node_id));
-  pair<int, int> node;
-  int node_id, next_node_id, next_node_weight;
-  while (!PQ.empty()) {
-    node = PQ.top();
-    PQ.pop();
-    node_id = node.second;
-    visit_status[node_id] = 2;
-    if (distance[node_id] < node.first) continue;
-    for (int i = 0; i < graph[node_id].size(); i++) {
-      next_node_id = graph[node_id][i].second;
-      next_node_weight = graph[node_id][i].first;
-      if (visit_status[next_node_id] != 2) {
-        if (distance[next_node_id] > distance[node_id] + next_node_weight) {
-          distance[next_node_id] = distance[node_id] + next_node_weight;
-          visit_status[next_node_id] = 1;
-          parent[next_node_id] = node_id;
-          PQ.push(make_pair(distance[next_node_id], next_node_id));
-          if (next_node_id == target_node_id) {
-            return;
+  // solve dijkstra to find the shortest path from the start node and the target
+  // node.
+  void dijkstra() {
+    // Initialize visitStatus_, distance_, parent_.
+    // visitStatus_ is 0 zero if the node is not visited, 2 when the visiting
+    // has completed, otherwise 1. Initizlized to 0.
+    resetVectors();
+    distance_[startNodeId_] = 0;
+    visitStatus_[startNodeId_] = 1;
+    std::priority_queue<std::pair<int, int>, std::vector<std::pair<int, int>>,
+                        std::greater<std::pair<int, int>>>
+        PQ;
+    PQ.push(std::make_pair(0, startNodeId_));
+    std::pair<int, int> node;
+    int nodeId, nextNodeId, nextNodeWeight;
+    while (!PQ.empty()) {
+      node = PQ.top();
+      PQ.pop();
+      nodeId = node.second;
+      visitStatus_[nodeId] = 2;
+      if (distance_[nodeId] < node.first) continue;
+      for (int i = 0; i < graph_[nodeId].size(); i++) {
+        nextNodeId = graph_[nodeId][i].second;
+        nextNodeWeight = graph_[nodeId][i].first;
+        if (visitStatus_[nextNodeId] != 2) {
+          if (distance_[nextNodeId] > distance_[nodeId] + nextNodeWeight) {
+            distance_[nextNodeId] = distance_[nodeId] + nextNodeWeight;
+            visitStatus_[nextNodeId] = 1;
+            parent_[nextNodeId] = nodeId;
+            PQ.push(std::make_pair(distance_[nextNodeId], nextNodeId));
+            // Stop searching if reached the targetNode
+            if (nextNodeId == targetNodeId_) {
+              return;
+            }
           }
         }
       }
     }
   }
+
+  // Check if the targetNodeId_ is reachable from the StartNodeId_ after
+  // dijkstra
+  bool const ifReachable() {
+    if (distance_[targetNodeId_] == VERY_LARGE_NUM) {
+      std::cout << "Unreachable!" << std::endl;
+      return 0;
+    } else {
+      std::cout << "Reachable!" << std::endl;
+      return 1;
+    }
+  }
+
+  // Get the shortest path from StartNodeId_ to targetNodeId_ after dijkstra
+  std::vector<int> const getShortestPath() {
+    std::vector<int> path;
+    std::cout << "Takes " << distance_[targetNodeId_] << " minutes"
+              << std::endl;
+    int parentNodeId = parent_[targetNodeId_];
+    while (parentNodeId != startNodeId_) {
+      path.push_back(parentNodeId);
+      parentNodeId = parent_[parentNodeId];
+    }
+    return path;
+  }
+
+ private:
+  std::vector<std::vector<std::pair<int, int>>> graph_;
+  int numOfNodes_, startNodeId_, targetNodeId_;
+  std::vector<int> visitStatus_, distance_, parent_;
+
+  void resetVectors() {
+    std::fill(visitStatus_.begin(), visitStatus_.end(), 0);
+    std::fill(distance_.begin(), distance_.end(), VERY_LARGE_NUM);
+    std::fill(parent_.begin(), parent_.end(), -1);
+  }
+};
+
+std::vector<std::string> loadStations(std::string pathToStationsFile) {
+  io::CSVReader<2, io::trim_chars<' '>, io::no_quote_escape<'\t'>>
+      StationsReader(pathToStationsFile);
+  int nodeId;
+  std::string stationName;
+  std::vector<std::string> stations;
+  while (StationsReader.read_row(nodeId, stationName)) {
+    stations.push_back(stationName);
+  }
+  return stations;
+}
+
+// Search stations and return the node id for the input page title.
+int getNodeIdFromStationName(const std::vector<std::string>& stations,
+                             std::string stationName) {
+  auto iteratorOfTarget = find(stations.begin(), stations.end(), stationName);
+  // If the input was not found, throw exception.
+  if (iteratorOfTarget == stations.end()) {
+    throw std::invalid_argument("No page station named '" + stationName + "'");
+  }
+  int nodeIdOfTarget = iteratorOfTarget - stations.begin();
+  return nodeIdOfTarget;
+}
+
+// Print the formatted path.
+void printPath(int startNodeId, int targetNodeId, std::vector<int>& path,
+               const std::vector<std::string>& stations) {
+  std::cout << stations[startNodeId] << " -> ";
+  for (int i = path.size() - 1; i >= 0; i--) {
+    std::cout << stations[path[i]] << " -> ";
+  }
+  std::cout << stations[targetNodeId] << std::endl;
+}
+
+void check(Graph& graphObj, const std::vector<std::string>& stations,
+           std::string startStationName, std::string targetStationName) {
+  int startNodeId, targetNodeId;
+  try {
+    startNodeId = getNodeIdFromStationName(stations, startStationName);
+    targetNodeId = getNodeIdFromStationName(stations, targetStationName);
+  } catch (std::invalid_argument e) {  // If there is no matching page
+    std::cerr << e.what() << std::endl;
+    return;
+  }
+  // Set startNodeId and targetNodeId to the graph object
+  graphObj.setStartTargetNode(startNodeId, targetNodeId);
+  // Couduct breadth first search to find the shortest path
+  graphObj.dijkstra();
+  // If reachable, get the shortest path and print
+  if (graphObj.ifReachable()) {
+    std::vector<int> path = graphObj.getShortestPath();
+    printPath(startNodeId, targetNodeId, path, stations);
+  }
+}
+
+void runTest(Graph& graphObj, const std::vector<std::string>& pages) {
+  check(graphObj, pages, "東京", "大手町");  // can reach directory
+  check(graphObj, pages, "東京", "幕張");    // can reach via some stations
+  check(graphObj, pages, "hoge", "fuga");    // no such station
+  check(graphObj, pages, "", "");            // empty input
 }
 
 int main() {
-  vector<string> stations = load_stations("./data/stations/stations.txt");
-  int num_of_nodes = stations.size();
-  vector<vector<pair<int, int>>> graph =
-      load_links("./data/stations/edges.txt", num_of_nodes);
+  // Load page titles from tsv file
+  std::vector<std::string> stations =
+      loadStations("./data/stations/stations.txt");
+  int numOfNodes = stations.size();
+  // Initialize graph object
+  Graph graphObj(numOfNodes);
+  graphObj.loadGraph("./data/stations/edges.txt");
+  std::cout << "loading finished" << std::endl;
+  runTest(graphObj, stations);
 
-  string start_station, target_station;
-  cin >> start_station >> target_station;
-
-  int start_node_id = search_station(stations, start_station);
-  int target_node_id = search_station(stations, target_station);
-
-  vector<int> visit_status(num_of_nodes), distance(num_of_nodes, 1e5),
-      parent(num_of_nodes, -1);
-  dijkstra(start_node_id, target_node_id, graph, visit_status, distance,
-           parent);
-  vector<int> path_store;
-  if (distance[target_node_id] == 1e5) {
-    cout << "Unreachable!" << endl;
-  } else {
-    cout << "Reachable!" << endl;
-    cout << "Needed time [min]: " << distance[target_node_id] << endl;
-    int parent_node_id = parent[target_node_id];
-    while (parent_node_id != start_node_id) {
-      path_store.push_back(parent_node_id);
-      parent_node_id = parent[parent_node_id];
-    }
-    cout << stations[start_node_id] << " -> ";
-    for (int i = path_store.size() - 1; i >= 0; i--) {
-      cout << stations[path_store[i]] << " -> ";
-    }
-    cout << stations[target_node_id] << endl;
+  std::string startStationName, targetStationName;
+  while (1) {
+    std::cout << "Please input start and target page" << std::endl;
+    std::cin >> startStationName >> targetStationName;
+    check(graphObj, stations, startStationName, targetStationName);
   }
+  return 0;
 }
