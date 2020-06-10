@@ -1,177 +1,187 @@
-#include <algorithm>
-#include <bitset>
-#include <cassert>
-#include <cmath>
 #include <fstream>
 #include <iostream>
-#include <map>
-#include <numeric>
 #include <queue>
-#include <regex>
-#include <set>
 #include <string>
 #include <vector>
 
-// Acknowledgement: Special thanks to kyomukyomupurin, who developed this
-// template.
-template <class T, class U>
-std::ostream& operator<<(std::ostream& os, const std::pair<T, U>& p) {
-  return os << '(' << p.first << ", " << p.second << ')';
-}
+#include "csv.h"
 
-template <class T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
-  int n = 0;
-  for (auto e : vec) os << (n++ ? ", " : "{") << e;
-  return os << (n ? "}" : "{}");
-}
+class Graph {
+ public:
+  static constexpr int VERY_LARGE_NUM = 1e9;
+  Graph(int numOfNodes)
+      : numOfNodes_(numOfNodes),
+        graph_(numOfNodes, std::vector<int>{}),
+        visitStatus_(numOfNodes, 0),
+        distance_(numOfNodes, VERY_LARGE_NUM),
+        parent_(numOfNodes, -1) {}
 
-template <class T>
-std::ostream& operator<<(std::ostream& os, const std::set<T>& st) {
-  int n = 0;
-  for (auto e : st) os << (n++ ? ", " : "{") << e;
-  return os << (n ? "}" : "{}");
-}
-
-template <class T, class U>
-std::ostream& operator<<(std::ostream& os, const std::map<T, U>& mp) {
-  int n = 0;
-  for (auto e : mp) os << (n++ ? ", " : "{") << e;
-  return os << (n ? "}" : "{}");
-}
-
-template <class T>
-std::istream& operator>>(std::istream& is, std::vector<T>& vec) {
-  for (T& e : vec) is >> e;
-  return is;
-}
-
-#ifdef LOCAL
-#define debug(...) \
-  std::cerr << "[" << #__VA_ARGS__ << "]: ", debug_out(__VA_ARGS__)
-#else
-#define debug(...)
-#endif
-
-void debug_out() { std::cerr << '\n'; }
-
-template <class Head, class... Tail>
-void debug_out(Head&& head, Tail&&... tail) {
-  std::cerr << head;
-  if (sizeof...(Tail) != 0) std::cerr << ", ";
-  debug_out(std::forward<Tail>(tail)...);
-}
-using namespace std;
-using int64 = long long;
-
-vector<string> load_nicknames(string path_to_nicknames_file) {
-  std::string str;
-  std::ifstream ifs(path_to_nicknames_file);
-  std::smatch results;
-  vector<string> nicknames;
-
-  if (ifs.fail()) {
-    throw "Failed to open nickname file.";
-  }
-  while (getline(ifs, str)) {
-    if (std::regex_match(str, results, std::regex("(\\d+)\t(\\w+)"))) {
-      nicknames.push_back(results[2].str());
+  // Load links from tsv file and convert it to graph object.
+  void loadGraph(std::string path_to_links_file) {
+    io::CSVReader<2, io::trim_chars<' '>, io::no_quote_escape<'\t'>>
+        graphReader(path_to_links_file);
+    int currentNodeId, adjacentNodeId;
+    while (graphReader.read_row(currentNodeId, adjacentNodeId)) {
+      // graph_ is a vector of vector, whose element is a adjacent node id.
+      graph_[currentNodeId].push_back(adjacentNodeId);
     }
+  }
+
+  // Set startNodeId_ and targetNodeId_.
+  void setStartTargetNode(int startNodeId, int targetNodeId) {
+    startNodeId_ = startNodeId;
+    targetNodeId_ = targetNodeId;
+  }
+
+  // Conduct breadth first search (BFS) to find the shortest path from
+  // startNodeId_ to targetNodeId_.
+  void breadthFirstSearch() {
+    // Initialize visitStatus_, distance_, parent_.
+    // visitStatus_ is 0 zero if the node is not visited, 2 when the visiting
+    // has completed, otherwise 1. Initizlized to 0.
+    resetVectors();
+    int nodeId, nextNodeId;
+    std::queue<int> Q;
+    distance_[startNodeId_] = 0;
+    visitStatus_[startNodeId_] = 1;
+    Q.push(startNodeId_);
+    while (!Q.empty()) {
+      nodeId = Q.front();
+      Q.pop();
+      for (int i = 0; i < graph_[nodeId].size(); i++) {
+        nextNodeId = graph_[nodeId][i];
+        if (visitStatus_[nextNodeId] == 0) {
+          Q.push(nextNodeId);
+          visitStatus_[nextNodeId] = 1;
+          distance_[nextNodeId] = distance_[nodeId] + 1;
+          parent_[nextNodeId] = nodeId;
+          // Stop searching if reached the targetNode
+          if (nextNodeId == targetNodeId_) {
+            return;
+          }
+        }
+      }
+      visitStatus_[nodeId] = 2;
+    }
+  }
+
+  // Check if the targetNodeId_ is reachable from the StartNodeId_ after BFS
+  bool const ifReachable() {
+    if (distance_[targetNodeId_] == VERY_LARGE_NUM) {
+      std::cout << "Unreachable!" << std::endl;
+      return 0;
+    } else {
+      std::cout << "Reachable!" << std::endl;
+      return 1;
+    }
+  }
+
+  // Get the shortest path from StartNodeId_ to targetNodeId_ after BFS
+  std::vector<int> const getShortestPath() {
+    std::vector<int> path;
+    std::cout << "Length of the shortest path: " << distance_[targetNodeId_]
+              << std::endl;
+    int parentNodeId = parent_[targetNodeId_];
+    while (parentNodeId != startNodeId_) {
+      path.push_back(parentNodeId);
+      parentNodeId = parent_[parentNodeId];
+    }
+    return path;
+  }
+
+ private:
+  std::vector<std::vector<int>> graph_;
+  int numOfNodes_, startNodeId_, targetNodeId_;
+  std::vector<int> visitStatus_, distance_, parent_;
+
+  void resetVectors() {
+    std::fill(visitStatus_.begin(), visitStatus_.end(), 0);
+    std::fill(distance_.begin(), distance_.end(), VERY_LARGE_NUM);
+    std::fill(parent_.begin(), parent_.end(), -1);
+  }
+};
+
+// Load list of nicknames from tsv file.
+std::vector<std::string> loadnicknames(std::string path_to_nicknames_file) {
+  io::CSVReader<2, io::trim_chars<' '>, io::no_quote_escape<'\t'>>
+      nicknames_reader(path_to_nicknames_file);
+  int nodeId;
+  std::string nickname;
+  std::vector<std::string> nicknames;
+  while (nicknames_reader.read_row(nodeId, nickname)) {
+    nicknames.push_back(nickname);
   }
   return nicknames;
 }
 
-vector<vector<int>> load_links(string path_to_links_file, int num_of_nodes) {
-  std::string str;
-  std::ifstream ifs(path_to_links_file);
-  std::smatch results;
-  int node_id, adjacent_node_id;
-  vector<vector<int>> graph(num_of_nodes, vector<int>{});
-
-  if (ifs.fail()) {
-    throw "Failed to open nickname file.";
+// Search nicknames and return the node id for the input nickname.
+int getNodeIdFromNickname(const std::vector<std::string>& nicknames,
+                          std::string nickname) {
+  auto iteratorOfTarget = find(nicknames.begin(), nicknames.end(), nickname);
+  // If the input was not found, throw exception.
+  if (iteratorOfTarget == nicknames.end()) {
+    throw std::invalid_argument("No nickname named '" + nickname + "'");
   }
-  while (getline(ifs, str)) {
-    if (std::regex_match(str, results, std::regex("(\\d+)\t(\\d+)"))) {
-      node_id = stoi(results[1].str());
-      adjacent_node_id = stoi(results[2].str());
-      graph[node_id].push_back(adjacent_node_id);
-    }
-  }
-  return graph;
+  int nodeIdOfTarget = iteratorOfTarget - nicknames.begin();
+  return nodeIdOfTarget;
 }
 
-void breadth_first_search(int start_node_id, int target_node_id,
-                          const vector<vector<int>>& graph,
-                          vector<int>& visit_status, vector<int>& distance,
-                          vector<int>& parent) {
-  int node_id, next_node_id;
-  queue<int> Q;
-  distance[start_node_id] = 0;
-  visit_status[start_node_id] = 1;
-  Q.push(start_node_id);
-  while (!Q.empty()) {
-    node_id = Q.front();
-    Q.pop();
-    for (int i = 0; i < graph[node_id].size(); i++) {
-      next_node_id = graph[node_id][i];
-      if (visit_status[next_node_id] == 0) {
-        Q.push(next_node_id);
-        visit_status[next_node_id] = 1;
-        distance[next_node_id] = distance[node_id] + 1;
-        parent[next_node_id] = node_id;
-        if (next_node_id == target_node_id) {
-          return;
-        }
-      }
-    }
-    visit_status[node_id] = 2;
+// Print the formatted path.
+void printPath(int startNodeId, int targetNodeId, std::vector<int>& path,
+               const std::vector<std::string>& nicknames) {
+  std::cout << nicknames[startNodeId] << " -> ";
+  for (int i = path.size() - 1; i >= 0; i--) {
+    std::cout << nicknames[path[i]] << " -> ";
+  }
+  std::cout << nicknames[targetNodeId] << std::endl;
+}
+
+void check(Graph& graphObj, const std::vector<std::string>& nicknames,
+           std::string startNickname, std::string targetNickname) {
+  int startNodeId, targetNodeId;
+  try {
+    startNodeId = getNodeIdFromNickname(nicknames, startNickname);
+    targetNodeId = getNodeIdFromNickname(nicknames, targetNickname);
+  } catch (std::invalid_argument e) {  // If there is no matching nickname
+    std::cerr << e.what() << std::endl;
+    return;
+  }
+  // Set startNodeId and targetNodeId to the graph object
+  graphObj.setStartTargetNode(startNodeId, targetNodeId);
+  // Couduct breadth first search to find the shortest path
+  graphObj.breadthFirstSearch();
+  // If reachable, get the shortest path and print
+  if (graphObj.ifReachable()) {
+    std::vector<int> path = graphObj.getShortestPath();
+    printPath(startNodeId, targetNodeId, path, nicknames);
   }
 }
 
-int search_nickname(const vector<string>& nicknames, string target_nickname) {
-  auto iterator_of_target =
-      find(nicknames.begin(), nicknames.end(), target_nickname);
-  if (iterator_of_target == nicknames.end()) {
-    throw "Invalid username";
-  }
-  int node_id_of_target = iterator_of_target - nicknames.begin();
-  return node_id_of_target;
+void runTest(Graph& graphObj, const std::vector<std::string>& nicknames) {
+  check(graphObj, nicknames, "adrian", "hugh");   // Adrian and Me
+  check(graphObj, nicknames, "adrian", "alan");   // can reach directory
+  check(graphObj, nicknames, "adrian", "jack");   // can reach via some people
+  check(graphObj, nicknames, "adrian", "betty");  // unreachable
+  check(graphObj, nicknames, "hoge", "fuga");     // no such nickname
+  check(graphObj, nicknames, "", "");             // empty input
 }
 
 int main() {
-  vector<string> nicknames = load_nicknames("./data/dummy_sns/nicknames.txt");
-  int num_of_nodes = nicknames.size();
-  vector<vector<int>> graph =
-      load_links("./data/dummy_sns/links.txt", num_of_nodes);
+  // Load nicknames from tsv file
+  std::vector<std::string> nicknames =
+      loadnicknames("./data/dummy_sns/nicknames.txt");
+  int numOfNodes = nicknames.size();
+  // Initialize graph object
+  Graph graphObj(numOfNodes);
+  graphObj.loadGraph("./data/dummy_sns/links.txt");
+  std::cout << "loading finished" << std::endl;
+  runTest(graphObj, nicknames);
 
-  string start_nickname, target_nickname;
-  cin >> start_nickname >> target_nickname;
-
-  int start_node_id = search_nickname(nicknames, start_nickname);
-  int target_node_id = search_nickname(nicknames, target_nickname);
-
-  vector<int> visit_status(num_of_nodes), distance(num_of_nodes, -1),
-      parent(num_of_nodes, -1);
-  breadth_first_search(start_node_id, target_node_id, graph, visit_status,
-                       distance, parent);
-  vector<int> path_store;
-
-  if (distance[target_node_id] == -1) {
-    cout << "Unreachable!" << endl;
-  } else {
-    cout << "Reachable!" << endl;
-    cout << "Length of the shortest path: " << distance[target_node_id] << endl;
-    int parent_node_id = parent[target_node_id];
-    while (parent_node_id != start_node_id) {
-      path_store.push_back(parent_node_id);
-      parent_node_id = parent[parent_node_id];
-    }
-    cout << nicknames[start_node_id] << " -> ";
-    for (int i = path_store.size() - 1; i >= 0; i--) {
-      cout << nicknames[path_store[i]] << " -> ";
-    }
-    cout << nicknames[target_node_id] << endl;
+  std::string startNickname, targetNickname;
+  while (1) {
+    std::cout << "Please input start and target nickname" << std::endl;
+    std::cin >> startNickname >> targetNickname;
+    check(graphObj, nicknames, startNickname, targetNickname);
   }
   return 0;
 }

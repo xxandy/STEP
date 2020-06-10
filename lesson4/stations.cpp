@@ -124,13 +124,13 @@ std::vector<std::string> loadStations(std::string pathToStationsFile) {
   return stations;
 }
 
-// Search stations and return the node id for the input page title.
+// Search stations and return the node id for the input station.
 int getNodeIdFromStationName(const std::vector<std::string>& stations,
                              std::string stationName) {
   auto iteratorOfTarget = find(stations.begin(), stations.end(), stationName);
   // If the input was not found, throw exception.
   if (iteratorOfTarget == stations.end()) {
-    throw std::invalid_argument("No page station named '" + stationName + "'");
+    throw std::invalid_argument("No station named '" + stationName + "'");
   }
   int nodeIdOfTarget = iteratorOfTarget - stations.begin();
   return nodeIdOfTarget;
@@ -152,7 +152,7 @@ void check(Graph& graphObj, const std::vector<std::string>& stations,
   try {
     startNodeId = getNodeIdFromStationName(stations, startStationName);
     targetNodeId = getNodeIdFromStationName(stations, targetStationName);
-  } catch (std::invalid_argument e) {  // If there is no matching page
+  } catch (std::invalid_argument e) {  // If there is no matching station
     std::cerr << e.what() << std::endl;
     return;
   }
@@ -167,15 +167,15 @@ void check(Graph& graphObj, const std::vector<std::string>& stations,
   }
 }
 
-void runTest(Graph& graphObj, const std::vector<std::string>& pages) {
-  check(graphObj, pages, "東京", "大手町");  // can reach directory
-  check(graphObj, pages, "東京", "幕張");    // can reach via some stations
-  check(graphObj, pages, "hoge", "fuga");    // no such station
-  check(graphObj, pages, "", "");            // empty input
+void runTest(Graph& graphObj, const std::vector<std::string>& stations) {
+  check(graphObj, stations, "東京", "大手町");  // can reach directory
+  check(graphObj, stations, "東京", "幕張");    // can reach via some stations
+  check(graphObj, stations, "hoge", "fuga");    // no such station
+  check(graphObj, stations, "", "");            // empty input
 }
 
 int main() {
-  // Load page titles from tsv file
+  // Load station names from tsv file
   std::vector<std::string> stations =
       loadStations("./data/stations/stations.txt");
   int numOfNodes = stations.size();
@@ -187,7 +187,7 @@ int main() {
 
   std::string startStationName, targetStationName;
   while (1) {
-    std::cout << "Please input start and target page" << std::endl;
+    std::cout << "Please input start and target station name" << std::endl;
     std::cin >> startStationName >> targetStationName;
     check(graphObj, stations, startStationName, targetStationName);
   }
