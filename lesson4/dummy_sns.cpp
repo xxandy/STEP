@@ -24,6 +24,9 @@ class Graph {
     while (graphReader.read_row(currentNodeId, adjacentNodeId)) {
       // graph_ is a vector of vector, whose element is a adjacent node id.
       graph_[currentNodeId].push_back(adjacentNodeId);
+       // ALEXNOTE:  rather than maintaing the nicknames and the graph separately,
+        //             you would get more performance by having Node objects store links
+        //              (in C++, pointers would be ideal) directly to their adjacent notes.
     }
   }
 
@@ -159,11 +162,13 @@ void check(Graph& graphObj, const std::vector<std::string>& nicknames,
 
 void runTest(Graph& graphObj, const std::vector<std::string>& nicknames) {
   check(graphObj, nicknames, "adrian", "hugh");   // Adrian and Me
-  check(graphObj, nicknames, "adrian", "alan");   // can reach directory
+  check(graphObj, nicknames, "adrian", "alan");   // can reach directory  (ALEXNOTE:  directly?)
   check(graphObj, nicknames, "adrian", "jack");   // can reach via some people
   check(graphObj, nicknames, "adrian", "betty");  // unreachable
   check(graphObj, nicknames, "hoge", "fuga");     // no such nickname
   check(graphObj, nicknames, "", "");             // empty input
+ 
+  // ALEXNOTE: how about testing the same name as the source and dest?  does it work okay?
 }
 
 int main() {
