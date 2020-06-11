@@ -26,6 +26,7 @@ class Graph {
       // adjacent node id).
       graph_[currentNodeId].push_back(std::make_pair(weight, adjacentNodeId));
       graph_[adjacentNodeId].push_back(std::make_pair(weight, currentNodeId));
+       // ALEXNOTE: comment from other exiercise holds true here as well
     }
   }
 
