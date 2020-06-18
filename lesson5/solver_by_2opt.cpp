@@ -68,6 +68,9 @@ class TSP {
   double CalcScoreFromTour(const std::vector<int>& tour) {
     double result = 0;
     for (int i = 1; i < N_ + 1; i++) {
+      // ALEXNOTE: this is called in the inner loop of OptimizeBy20pt.
+      //          so you can probably gain much efficiency by caching the score
+      //          data for each node,  or even better if you cache for the entire tour.
       result += dist_[tour[i - 1]][tour[i]];
     }
     return result;
