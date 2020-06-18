@@ -46,7 +46,9 @@ class TSP {
     dp_[(1 << N_) - 1][0] = 0;
     for (long long tmp = (1 << N_) - 2; tmp >= 0; tmp--) {
       // S (bitset) is a set of points that are already visited.
-      std::bitset<max_N> S(tmp);
+      std::bitset<max_N> S(tmp); 
+      // ALEXNOTE: is a bit set more performant than just an array?  (of course, the arry uses more space,
+      //        but it may not be significant here.
       for (int now = 0; now < N_; now++) {
         // if now is not in S, skip.
         if (!S.test(now) && now != 0) continue;
