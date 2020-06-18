@@ -51,6 +51,10 @@ class TSP {
       double tmp = inf;
       int next = 0;
       for (auto next_candidate : not_visited) {
+       // ALEXNOTE: nice use of C++ latest features !
+       
+       // ALEXNOTE: line below does two unnecessary dictionary lookaps
+        //         (expression dist_[now][next_candidate] is invoked twice)
         if (tmp > dist_[now][next_candidate]) {
           tmp = dist_[now][next_candidate];
           next = next_candidate;
@@ -97,6 +101,8 @@ std::vector<std::vector<double>> LoadCoordinates(std::string input_file_path) {
   return coordinates;
 }
 
+// ALEXNOTE: you may want to create a common library for this code
+//           which is common for all versions.
 // Create output file name from input file path and prefix
 // if no output file path is provided.
 // ex) input_0.csv -> ${prefix}_0.csv
