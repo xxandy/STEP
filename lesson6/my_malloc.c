@@ -201,6 +201,7 @@ void* my_malloc(size_t size) {
     size_t buffer_size = 4096;
     simple_metadata_t* metadata =
         (simple_metadata_t*)mmap_from_system(buffer_size);
+    // ALEXNOTE: no error checking - I understand this was the case in the sample code as well
     metadata->size = buffer_size - sizeof(simple_metadata_t);
     metadata->next = NULL;
     // Add the memory region to the free list.
@@ -240,6 +241,7 @@ void* my_malloc(size_t size) {
 // This is called every time an object is freed.  You are not allowed to use
 // any library functions other than mmap_from_system / munmap_to_system.
 void my_free(void* ptr) { simple_free(ptr); }
+// ALEXNOTE:  food for thought: was there any way to optimize my_free() ?
 
 ////////////////////////////////////////////////////////////////////////////////
 
