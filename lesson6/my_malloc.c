@@ -86,15 +86,11 @@ void* simple_malloc(size_t size) {
   simple_metadata_t* metadata = simple_heap.free_head;
   simple_metadata_t* prev = NULL;
   // First-fit: Find the first free slot the object fits.
-  // オブジェクトが入る最初の空き slot を探している
-  // size より大きい metadata が見つかった時点で loop から抜ける
-  // 存在しなければ、最後まで走査されるので metadata には NULL が入る
   while (metadata && metadata->size < size) {
     prev = metadata;
     metadata = metadata->next;
   }
 
-  // オブジェクトが入る空きスペースが見つからなかった場合、新規に追加する必要がある
   if (!metadata) {
     // There was no free slot available. We need to request a new memory region
     // from the system by calling mmap_from_system().
@@ -121,14 +117,11 @@ void* simple_malloc(size_t size) {
   //     ^          ^
   //     metadata   ptr
   void* ptr = metadata + 1;
-  // 余ったところを管理
   size_t remaining_size = metadata->size - size;
   metadata->size = size;
-  // 追加したところはもう free ではないので、削除する
   // Remove the free slot from the free list.
   simple_remove_from_free_list(metadata, prev);
 
-  // 余ったところの metadata を作る。メタデータ作る余裕さえなかったらやめる
   if (remaining_size > sizeof(simple_metadata_t)) {
     // Create a new metadata for the remaining free slot.
     //
@@ -211,7 +204,6 @@ void* my_malloc(size_t size) {
     metadata->size = buffer_size - sizeof(simple_metadata_t);
     metadata->next = NULL;
     // Add the memory region to the free list.
-    // printf("no space\n");
     simple_add_to_free_list(metadata);
     // Now, try simple_malloc() again. This should succeed.
     return simple_malloc(size);
@@ -227,7 +219,6 @@ void* my_malloc(size_t size) {
   metadata->size = size;
   // Remove the free slot from the free list.
   simple_remove_from_free_list(metadata, prev);
-  // printf("successfully removed");
 
   if (remaining_size > sizeof(simple_metadata_t)) {
     // Create a new metadata for the remaining free slot.
@@ -241,7 +232,6 @@ void* my_malloc(size_t size) {
     new_metadata->size = remaining_size - sizeof(simple_metadata_t);
     new_metadata->next = NULL;
     // Add the remaining free slot to the free list.
-    // printf("create metadata\n");
     simple_add_to_free_list(new_metadata);
   }
   return ptr;
