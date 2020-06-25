@@ -173,6 +173,9 @@ void* my_malloc(size_t size) {
   int best_remain = 1e8;
   simple_metadata_t* best_metadata = NULL;
   simple_metadata_t* best_metadata_prev = NULL;
+  
+  // ALEXNOTE:  is it possible to integrate (and take advantage) of both best and first match,
+  //            and to do that without increasing compute time much?
   while (metadata) {
     size_t remaining_size = metadata->size - size;
     if (remaining_size > 0 && remaining_size < best_remain) {
